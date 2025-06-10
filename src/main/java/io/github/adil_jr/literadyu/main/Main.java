@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -45,12 +46,18 @@ public class Main {
                     4- Listar autores vivos em um determinado ano
                     5- Listar livros em um determinado idioma
                     
+                    --- Opções Avançadas ---
+                    6- Top 10 livros mais baixados
+                    7- Buscar autor por nome
+                    8- Exibir estatísticas de downloads
+                    9- Listar autores por ano de nascimento
+                    
                     0- Sair
                     """;
 
             System.out.println(menu);
             option = scanner.nextInt();
-            scanner.nextLine(); // Limpa o buffer do scanner
+            scanner.nextLine();
 
             switch (option) {
                 case 1:
@@ -67,6 +74,18 @@ public class Main {
                     break;
                 case 5:
                     listBooksByLanguage();
+                    break;
+                case 6:
+                    listTop10Books();
+                    break;
+                case 7:
+                    findAuthorByName();
+                    break;
+                case 8:
+                    showDownloadStatistics();
+                    break;
+                case 9:
+                    listAuthorsByBirthYear();
                     break;
                 case 0:
                     System.out.println("Saindo... Obrigado por usar o LiterAdyu!");
@@ -170,6 +189,67 @@ public class Main {
             System.out.println("----- LIVROS EM '" + lang.toUpperCase() + "' -----");
             books.forEach(System.out::println);
             System.out.println("--------------------------");
+        }
+    }
+
+    private void listTop10Books() {
+        List<Book> top10Books = bookRepository.findTop10ByOrderByDownloadCountDesc();
+        if (top10Books.isEmpty()) {
+            System.out.println("Nenhum livro encontrado para gerar o Top 10.");
+        } else {
+            System.out.println("----- TOP 10 LIVROS MAIS BAIXADOS -----");
+            top10Books.forEach(System.out::println);
+            System.out.println("---------------------------------------");
+        }
+    }
+
+    private void findAuthorByName() {
+        System.out.println("Digite o nome do autor que deseja buscar:");
+        var authorName = scanner.nextLine();
+        Optional<Author> author = authorRepository.findByNameContainingIgnoreCase(authorName);
+        if(author.isPresent()) {
+            System.out.println("----- AUTOR ENCONTRADO -----");
+            System.out.println(author.get());
+            // Como usamos FetchType.EAGER, os livros já foram carregados.
+            System.out.println("Livros deste autor:");
+            author.get().getBooks().forEach(book -> System.out.println("  - " + book.getTitle()));
+            System.out.println("----------------------------");
+        } else {
+            System.out.println("Nenhum autor encontrado com o nome '" + authorName + "'.");
+        }
+    }
+
+    private void showDownloadStatistics() {
+        List<Book> books = bookRepository.findAll();
+        if(books.isEmpty()) {
+            System.out.println("Não há livros no banco para gerar estatísticas.");
+            return;
+        }
+
+        DoubleSummaryStatistics stats = books.stream()
+                .mapToDouble(Book::getDownloadCount)
+                .summaryStatistics();
+
+        System.out.println("----- ESTATÍSTICAS DE DOWNLOADS -----");
+        System.out.printf("Total de Livros: %d\n", stats.getCount());
+        System.out.printf("Total de Downloads: %.0f\n", stats.getSum());
+        System.out.printf("Média de Downloads por Livro: %.2f\n", stats.getAverage());
+        System.out.printf("Maior Número de Downloads: %.0f\n", stats.getMax());
+        System.out.printf("Menor Número de Downloads: %.0f\n", stats.getMin());
+        System.out.println("-------------------------------------");
+    }
+
+    private void listAuthorsByBirthYear() {
+        System.out.println("Digite o ano de nascimento para buscar os autores:");
+        var year = scanner.nextInt();
+        scanner.nextLine();
+        List<Author> authors = authorRepository.findByBirthYear(year);
+        if(authors.isEmpty()){
+            System.out.println("Nenhum autor encontrado nascido no ano de " + year + ".");
+        } else {
+            System.out.println("----- AUTORES NASCIDOS EM " + year + " -----");
+            authors.forEach(System.out::println);
+            System.out.println("-----------------------------------");
         }
     }
 }
