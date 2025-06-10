@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -32,8 +33,48 @@ public class Main {
     }
 
     public void showMenu() {
-        System.out.println("Buscando e salvando livros...");
-        searchAndSaveBook();
+        var option = -1;
+        while (option != 0) {
+            var menu = """
+                    *** LiterAdyu - Seu Catálogo de Livros ***
+                    
+                    Escolha uma opção pelo número:
+                    1- Buscar livro pelo título (e salvar no DB)
+                    2- Listar livros registrados
+                    3- Listar autores registrados
+                    4- Listar autores vivos em um determinado ano
+                    5- Listar livros em um determinado idioma
+                    
+                    0- Sair
+                    """;
+
+            System.out.println(menu);
+            option = scanner.nextInt();
+            scanner.nextLine(); // Limpa o buffer do scanner
+
+            switch (option) {
+                case 1:
+                    searchAndSaveBook();
+                    break;
+                case 2:
+                    listRegisteredBooks();
+                    break;
+                case 3:
+                    listRegisteredAuthors();
+                    break;
+                case 4:
+                    listLivingAuthorsInYear();
+                    break;
+                case 5:
+                    listBooksByLanguage();
+                    break;
+                case 0:
+                    System.out.println("Saindo... Obrigado por usar o LiterAdyu!");
+                    break;
+                default:
+                    System.out.println("Opção inválida!");
+            }
+        }
     }
 
     private void searchAndSaveBook() {
@@ -73,5 +114,62 @@ public class Main {
 
         System.out.println("Livro salvo com sucesso!");
         System.out.println(newBook);
+    }
+
+    private void listRegisteredBooks() {
+        List<Book> books = bookRepository.findAll();
+        if (books.isEmpty()) {
+            System.out.println("Nenhum livro cadastrado.");
+        } else {
+            System.out.println("---- LIVROS REGISTRADOS ----");
+            books.forEach(System.out::println);
+            System.out.println("-----------------------------");
+        }
+    }
+
+    private void listRegisteredAuthors() {
+        List<Author> authors = authorRepository.findAll();
+        if (authors.isEmpty()) {
+            System.out.println("Nenhum autor cadastrado.");
+        } else {
+            System.out.println("----- AUTORES REGISTRADOS -----");
+            authors.forEach(System.out::println);
+            System.out.println("------------------------------");
+        }
+    }
+
+    private void listLivingAuthorsInYear() {
+        System.out.println("Digite o ano para buscar autores vivos:");
+        var year = scanner.nextInt();
+        scanner.nextLine();
+        List<Author> authors = authorRepository.findByBirthYearLessThanEqualAndDeathYearGreaterThanEqual(year, year);
+        if (authors.isEmpty()) {
+            System.out.println("Nenhum autor vivo encontrado para o ano " + year + ".");
+        } else {
+            System.out.println("----- AUTORES VIVOS EM " + year + " -----");
+            authors.forEach(System.out::println);
+            System.out.println("-----------------------------------");
+        }
+    }
+
+    private void listBooksByLanguage() {
+        var languageMenu = """
+                Escolha um idioma para a busca:
+                es - Espanhol
+                en - Inglês
+                fr - Francês
+                pt - Português
+                """;
+        System.out.println(languageMenu);
+        var lang = scanner.nextLine();
+        List<Book> books = bookRepository.findByLanguage(lang);
+
+        if (books.isEmpty()) {
+            System.out.println("Nenhum livro encontrado para o idioma '" + lang + "'.");
+        } else {
+            System.out.println("----- LIVROS EM '" + lang.toUpperCase() + "' -----");
+            books.forEach(System.out::println);
+            System.out.println("--------------------------");
+        }
     }
 }
